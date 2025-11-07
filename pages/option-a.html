@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDP 360 - Evidence Playback</title>
+    <link rel="stylesheet" href="../styles.css">
+    <!-- Three.js for 360° video rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <!-- Sticky Header -->
+    <header class="sticky-header">
+        <div class="header-left">
+            <div class="breadcrumbs">
+                <span class="breadcrumb-item">Evidence</span>
+                <span class="breadcrumb-separator">›</span>
+                <span class="breadcrumb-item">Cases</span>
+                <span class="breadcrumb-separator">›</span>
+                <span class="breadcrumb-item">CASE-2025-001</span>
+                <span class="breadcrumb-separator">›</span>
+                <span class="breadcrumb-item active">360° Body Camera - Officer J. Smith</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="header-btn load-video-header-btn" id="loadVideoHeaderBtn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0l4 4h-3v8H7V4H4l4-4zm6 12v4H2v-4H0v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4h-2z"/>
+                </svg>
+                Load 360° Video
+            </button>
+            <button class="header-btn" id="shareBtn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M13 9a2 2 0 0 0-1.5.7l-5-3a2 2 0 0 0 0-1.4l5-3a2 2 0 1 0-.6-1.4l-5 3a2 2 0 1 0 0 3.4l5 3A2 2 0 1 0 13 9z"/>
+                </svg>
+                Share
+            </button>
+            <button class="header-btn" id="exportBtn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0l4 4h-3v8H7V4H4l4-4zm6 12v4H2v-4H0v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4h-2z"/>
+                </svg>
+                Export
+            </button>
+            <button class="header-btn" id="moreBtn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <circle cx="8" cy="3" r="1.5"/>
+                    <circle cx="8" cy="8" r="1.5"/>
+                    <circle cx="8" cy="13" r="1.5"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Playback Area -->
+        <div class="playback-section">
+            <!-- View Control Selector -->
+            <div class="view-control-selector">
+                <div class="view-control-container">
+                    <label for="viewControlSelect" class="view-control-label">View:</label>
+                    <select id="viewControlSelect" class="view-control-dropdown">
+                        <option value="stitched">Stitched 360°</option>
+                        <option value="front">Front View (Unstitched)</option>
+                        <option value="back">Back View (Unstitched)</option>
+                        <option value="rawview">Raw View</option>
+                        <option value="flatview">Flat View Recipe</option>
+                    </select>
+                </div>
+                
+                <!-- Keyboard Shortcuts Helper -->
+                <div class="shortcuts-helper">
+                    <div class="shortcuts-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/>
+                        </svg>
+                        Hotkeys:
+                    </div>
+                    <div class="shortcuts-list">
+                        <span class="shortcut-item"><kbd>Space</kbd> Play/Pause</span>
+                        <span class="shortcut-item"><kbd>R</kbd> Reset</span>
+                        <span class="shortcut-item"><kbd>F</kbd> Fullscreen</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Viewport -->
+            <div class="video-viewport" id="videoViewport">
+                <div class="viewport-overlay">
+                    <!-- Orientation Widget (Compass) -->
+                    <div class="orientation-widget" id="orientationWidget" title="Current viewing direction relative to camera orientation">
+                        <div class="compass">
+                            <div class="compass-header">
+                                <span class="compass-label">Lens</span>
+                                <span class="compass-degrees" id="compassDegrees">0°</span>
+                            </div>
+                            <svg viewBox="0 0 100 100" class="compass-svg">
+                                <!-- Background circle with gradient -->
+                                <defs>
+                                    <linearGradient id="compassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:rgba(0,0,0,0.85);stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:rgba(0,0,0,0.95);stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="50" cy="50" r="48" fill="url(#compassGrad)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                                
+                                <!-- Markers at 12, 3, 6, 9 o'clock -->
+                                <circle cx="50" cy="10" r="1.5" fill="#888"/>
+                                <circle cx="90" cy="50" r="1.5" fill="#888"/>
+                                <circle cx="50" cy="90" r="1.5" fill="#888"/>
+                                <circle cx="10" cy="50" r="1.5" fill="#888"/>
+                                
+                                <!-- Lens indicators -->
+                                <text x="50" y="14" text-anchor="middle" fill="#4ADE80" font-size="10" font-weight="600">F</text>
+                                <text x="50" y="88" text-anchor="middle" fill="#F87171" font-size="10" font-weight="600">B</text>
+                                <text x="86" y="54" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" font-weight="500">L</text>
+                                <text x="14" y="54" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" font-weight="500">R</text>
+                                
+                                <!-- Cross-hair lines (faint) -->
+                                <line x1="50" y1="20" x2="50" y2="30" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                                <line x1="50" y1="70" x2="50" y2="80" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                                <line x1="20" y1="50" x2="30" y2="50" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                                <line x1="70" y1="50" x2="80" y2="50" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                                
+                                <!-- Direction arrow (pointed) -->
+                                <path id="directionArrow" d="M50,25 L50,50 L45,45 M50,50 L55,45" stroke="#FCD34D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- Pan/Tilt/Zoom Info with inline input -->
+                    <div class="ptz-info">
+                        <button class="ptz-reset-btn" id="resetViewBtn" title="Reset to front lens (R)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 5V2L8 6l4 4V7c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z"/>
+                            </svg>
+                        </button>
+                        <button class="ptz-calibrate-btn" id="calibrateFrontBtn" title="Set current view as front lens (C)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                        </button>
+                        <div class="ptz-item" data-ptz="pan">
+                            Pan: <span class="ptz-value" id="panValue">0°</span>
+                            <input type="number" class="ptz-input" id="panInput" value="0" min="-180" max="180" style="display: none;">
+                        </div>
+                        <div class="ptz-item" data-ptz="tilt">
+                            Tilt: <span class="ptz-value" id="tiltValue">0°</span>
+                            <input type="number" class="ptz-input" id="tiltInput" value="0" min="-90" max="90" style="display: none;">
+                        </div>
+                        <div class="ptz-item" data-ptz="zoom">
+                            Zoom: <span class="ptz-value" id="zoomValue">75°</span>
+                            <input type="number" class="ptz-input" id="zoomInput" value="75" min="20" max="120" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Three.js container for 360 video rendering -->
+                <div id="threejsContainer"></div>
+                
+                <!-- Hidden video element for playback -->
+                <video id="video360" crossorigin="anonymous" loop style="display: none;"></video>
+                
+                <!-- File input for loading videos -->
+                <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
+                
+                <!-- Unstitched view containers (hidden by default) -->
+                <div id="unstitchedView" class="unstitched-container" style="display: none;">
+                    <!-- Single view display -->
+                    <div class="unstitched-pane-single">
+                        <div class="pane-label" id="currentViewLabel">Front View (180°)</div>
+                        <div class="unstitched-video" id="unstitchedVideo">
+                            <!-- De-wrapped 180° view will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Raw View (Dual Fisheye) containers (hidden by default) -->
+                <div id="rawView" class="raw-view-container" style="display: none;">
+                    <div class="raw-fisheye-grid">
+                        <div class="fisheye-pane">
+                            <div class="fisheye-pane-header">
+                                <div class="fisheye-label">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                        <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                                        <circle cx="8" cy="8" r="2"/>
+                                    </svg>
+                                    Front Lens
+                                </div>
+                                <div class="fisheye-ptz">
+                                    <span class="ptz-label">Pan:</span>
+                                    <span id="rawFrontPan">0°</span>
+                                    <span class="ptz-label">Tilt:</span>
+                                    <span id="rawFrontTilt">0°</span>
+                                    <span class="ptz-label">Zoom:</span>
+                                    <span id="rawFrontZoom">1.0x</span>
+                                </div>
+                            </div>
+                            <canvas id="rawFrontCanvas" class="fisheye-canvas"></canvas>
+                        </div>
+                        <div class="fisheye-pane">
+                            <div class="fisheye-pane-header">
+                                <div class="fisheye-label">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                        <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                                        <circle cx="8" cy="8" r="2"/>
+                                    </svg>
+                                    Back Lens
+                                </div>
+                                <div class="fisheye-ptz">
+                                    <span class="ptz-label">Pan:</span>
+                                    <span id="rawBackPan">0°</span>
+                                    <span class="ptz-label">Tilt:</span>
+                                    <span id="rawBackTilt">0°</span>
+                                    <span class="ptz-label">Zoom:</span>
+                                    <span id="rawBackZoom">1.0x</span>
+                                </div>
+                            </div>
+                            <canvas id="rawBackCanvas" class="fisheye-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline and Controls -->
+            <div class="playback-controls">
+                <div class="timeline-container">
+                    <div class="timeline-markers" id="timelineMarkers">
+                        <!-- Markers will be added here dynamically -->
+                        <div class="marker" style="left: 15%;" data-time="15.5" title="Marker 1: Suspect approached">
+                            <div class="marker-flag"></div>
+                        </div>
+                        <div class="marker" style="left: 45%;" data-time="45.2" title="Marker 2: Verbal warning issued">
+                            <div class="marker-flag"></div>
+                        </div>
+                        <div class="marker" style="left: 72%;" data-time="72.8" title="Marker 3: Subject detained">
+                            <div class="marker-flag"></div>
+                        </div>
+                    </div>
+                    <div class="timeline" id="timeline">
+                        <div class="timeline-progress" id="timelineProgress"></div>
+                        <div class="timeline-scrubber" id="timelineScrubber"></div>
+                    </div>
+                    <div class="timeline-labels">
+                        <span id="currentTime">0:00.000</span>
+                        <span id="duration">2:35.000</span>
+                    </div>
+                </div>
+
+                <div class="controls-row">
+                    <div class="controls-left">
+                        <button class="control-btn" id="playPauseBtn">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" id="pauseIcon" style="display: none;">
+                                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                            </svg>
+                        </button>
+                        <button class="control-btn" id="skipBackBtn" title="Skip back 10s">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
+                            </svg>
+                            <span class="skip-label">10</span>
+                        </button>
+                        <button class="control-btn" id="skipForwardBtn" title="Skip forward 10s">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
+                            </svg>
+                            <span class="skip-label">10</span>
+                        </button>
+                        <div class="volume-control">
+                            <button class="control-btn" id="muteBtn">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" id="volumeIcon">
+                                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+                                </svg>
+                            </button>
+                            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="75">
+                        </div>
+                    </div>
+
+                    <div class="controls-right">
+                        <div class="speed-control">
+                            <label>Speed:</label>
+                            <select id="speedSelect" class="speed-select">
+                                <option value="0.25">0.25x</option>
+                                <option value="0.5">0.5x</option>
+                                <option value="1" selected>1x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2">2x</option>
+                            </select>
+                        </div>
+                        <button class="control-btn" id="fullscreenBtn" title="Fullscreen">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" data-tab="metadata">Metadata</button>
+                <button class="sidebar-tab" data-tab="transcript">Transcript</button>
+                <button class="sidebar-tab" data-tab="multicam">Multi-Cam</button>
+                <button class="sidebar-tab" data-tab="markers">Markers</button>
+            </div>
+
+            <!-- Metadata Tab -->
+            <div class="sidebar-content active" data-content="metadata">
+                <div class="metadata-section">
+                    <h3>Evidence Information</h3>
+                    <div class="metadata-item">
+                        <span class="label">Evidence ID:</span>
+                        <span class="value">EVD-360-2025-001</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="label">Case Number:</span>
+                        <span class="value">CASE-2025-001</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="label">Officer:</span>
+                        <span class="value">J. Smith (Badge #4521)</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="label">Date/Time:</span>
+                        <span class="value">2025-10-03 14:32:15 PDT</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="label">Duration:</span>
+                        <span class="value">2:35.000</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="label">Location:</span>
+                        <span class="value">37.7749° N, 122.4194° W</span>
+                    </div>
+                </div>
+
+                <div class="metadata-section">
+                    <h3>Device Information</h3>
+                    <div class="metadata-item">
+                        <span class="label">Device:</span>
+                        <span class="value">Axon Body 4 (360°)</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="label">Serial Number:</span>
+                        <span class="value">AB4-360-892341</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="label">Resolution:</span>
+                        <span class="value">5.7K @ 30fps</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="label">File Format:</span>
+                        <span class="value">H.265 (HEVC)</span>
+                    </div>
+                </div>
+
+                <div class="metadata-section">
+                    <h3>Chain of Custody</h3>
+                    <div class="custody-entry">
+                        <div class="custody-time">2025-10-03 14:35:00</div>
+                        <div class="custody-action">Recording stopped - Auto-uploaded</div>
+                        <div class="custody-user">Officer J. Smith</div>
+                    </div>
+                    <div class="custody-entry">
+                        <div class="custody-time">2025-10-03 14:35:12</div>
+                        <div class="custody-action">Evidence uploaded to Evidence.com</div>
+                        <div class="custody-user">System</div>
+                    </div>
+                    <div class="custody-entry">
+                        <div class="custody-time">2025-10-03 15:22:41</div>
+                        <div class="custody-action">Reviewed and tagged</div>
+                        <div class="custody-user">Sgt. M. Johnson</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transcript Tab -->
+            <div class="sidebar-content" data-content="transcript">
+                <div class="transcript-container">
+                    <div class="transcript-entry" data-time="5.2">
+                        <div class="transcript-time">0:05.200</div>
+                        <div class="transcript-speaker">Officer Smith</div>
+                        <div class="transcript-text">"This is Officer Smith, badge 4521. Responding to a disturbance call at 123 Main Street."</div>
+                    </div>
+                    <div class="transcript-entry" data-time="15.5">
+                        <div class="transcript-time">0:15.500</div>
+                        <div class="transcript-speaker">Officer Smith</div>
+                        <div class="transcript-text">"Subject is approaching the vehicle. Sir, can you please stop and show me your hands?"</div>
+                    </div>
+                    <div class="transcript-entry" data-time="22.8">
+                        <div class="transcript-time">0:22.800</div>
+                        <div class="transcript-speaker">Subject</div>
+                        <div class="transcript-text">"I didn't do anything wrong!"</div>
+                    </div>
+                    <div class="transcript-entry" data-time="45.2">
+                        <div class="transcript-time">0:45.200</div>
+                        <div class="transcript-speaker">Officer Smith</div>
+                        <div class="transcript-text">"Sir, this is your final warning. Please comply with my instructions."</div>
+                    </div>
+                    <div class="transcript-entry" data-time="72.8">
+                        <div class="transcript-time">1:12.800</div>
+                        <div class="transcript-speaker">Officer Smith</div>
+                        <div class="transcript-text">"Requesting backup at this location. Subject is now detained."</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multi-Cam Tab -->
+            <div class="sidebar-content" data-content="multicam">
+                <div class="multicam-context">
+                    <h3>Available Camera Angles</h3>
+                    <div class="multicam-item active">
+                        <div class="multicam-thumbnail">
+                            <div class="thumbnail-placeholder">360°</div>
+                        </div>
+                        <div class="multicam-info">
+                            <div class="multicam-name">Officer Smith - Body 360</div>
+                            <div class="multicam-time">14:32:15 - 14:34:50</div>
+                        </div>
+                    </div>
+                    <div class="multicam-item">
+                        <div class="multicam-thumbnail">
+                            <div class="thumbnail-placeholder">CAM</div>
+                        </div>
+                        <div class="multicam-info">
+                            <div class="multicam-name">Officer Johnson - Body Cam</div>
+                            <div class="multicam-time">14:32:48 - 14:35:12</div>
+                        </div>
+                    </div>
+                    <div class="multicam-item">
+                        <div class="multicam-thumbnail">
+                            <div class="thumbnail-placeholder">DASH</div>
+                        </div>
+                        <div class="multicam-info">
+                            <div class="multicam-name">Unit 42 - Dash Cam</div>
+                            <div class="multicam-time">14:31:05 - 14:36:20</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Markers Tab -->
+            <div class="sidebar-content" data-content="markers">
+                <div class="markers-list">
+                    <div class="markers-header">
+                        <h3>Timeline Markers</h3>
+                        <button class="btn-add-marker" id="addMarkerSidebarBtn">+ Add Marker</button>
+                    </div>
+                    <div class="marker-item">
+                        <div class="marker-time">0:15.500</div>
+                        <div class="marker-title">Suspect approached</div>
+                        <div class="marker-description">Subject exits vehicle and approaches officer</div>
+                        <div class="marker-actions">
+                            <button class="marker-action-btn">Jump to</button>
+                            <button class="marker-action-btn">Edit</button>
+                            <button class="marker-action-btn">Delete</button>
+                        </div>
+                    </div>
+                    <div class="marker-item">
+                        <div class="marker-time">0:45.200</div>
+                        <div class="marker-title">Verbal warning issued</div>
+                        <div class="marker-description">Final warning given before enforcement action</div>
+                        <div class="marker-actions">
+                            <button class="marker-action-btn">Jump to</button>
+                            <button class="marker-action-btn">Edit</button>
+                            <button class="marker-action-btn">Delete</button>
+                        </div>
+                    </div>
+                    <div class="marker-item">
+                        <div class="marker-time">1:12.800</div>
+                        <div class="marker-title">Subject detained</div>
+                        <div class="marker-description">Subject placed in custody, backup requested</div>
+                        <div class="marker-actions">
+                            <button class="marker-action-btn">Jump to</button>
+                            <button class="marker-action-btn">Edit</button>
+                            <button class="marker-action-btn">Delete</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flatview-section">
+                    <h3>Flat View Recipes</h3>
+                    <p class="flatview-description">Create a standard 2D video from selected 360° viewpoints</p>
+                    <button class="btn-create-recipe" id="createRecipeBtn">+ Create New Recipe</button>
+                    <div class="recipe-list">
+                        <div class="recipe-item">
+                            <div class="recipe-name">Front-facing perspective</div>
+                            <div class="recipe-details">0:00.000 - 2:35.000 • Fixed forward view</div>
+                            <div class="recipe-actions">
+                                <button class="recipe-action-btn">Preview</button>
+                                <button class="recipe-action-btn">Export</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Share Modal -->
+    <div class="modal" id="shareModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Share Evidence</h2>
+                <button class="modal-close" id="closeShareModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Share with:</label>
+                    <input type="text" placeholder="Enter name, email, or agency" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>Access Level:</label>
+                    <select class="input-field">
+                        <option>View Only</option>
+                        <option>View & Comment</option>
+                        <option>View & Download</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Expiration:</label>
+                    <select class="input-field">
+                        <option>7 days</option>
+                        <option>30 days</option>
+                        <option>90 days</option>
+                        <option>No expiration</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" checked> Require authentication
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" checked> Log all access in chain of custody
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelShare">Cancel</button>
+                <button class="btn-primary">Share Evidence</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Export Evidence</h2>
+                <button class="modal-close" id="closeExportModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Export Format:</label>
+                    <select class="input-field" id="exportFormat">
+                        <option>Original 360° Video (.mp4)</option>
+                        <option>Flat View Recipe (.mp4)</option>
+                        <option>Video with Transcript (.zip)</option>
+                        <option>Frame Captures (.zip)</option>
+                        <option>Complete Evidence Package (.zip)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Quality:</label>
+                    <select class="input-field">
+                        <option>Original Quality</option>
+                        <option>High (1080p)</option>
+                        <option>Medium (720p)</option>
+                        <option>Low (480p)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Time Range:</label>
+                    <div class="time-range-inputs">
+                        <input type="text" value="0:00.000" class="input-field time-input">
+                        <span>to</span>
+                        <input type="text" value="2:35.000" class="input-field time-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" checked> Include metadata
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" checked> Include chain of custody log
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox"> Redact audio
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelExport">Cancel</button>
+                <button class="btn-primary">Export Evidence</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Marker Modal -->
+    <div class="modal" id="addMarkerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Marker</h2>
+                <button class="modal-close" id="closeMarkerModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Time:</label>
+                    <input type="text" id="markerTime" value="0:00.000" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>Title:</label>
+                    <input type="text" placeholder="Brief marker title" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>Description:</label>
+                    <textarea placeholder="Detailed description of event" class="input-field" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Category:</label>
+                    <select class="input-field">
+                        <option>Event</option>
+                        <option>Evidence</option>
+                        <option>Person of Interest</option>
+                        <option>Location</option>
+                        <option>Action Taken</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelMarker">Cancel</button>
+                <button class="btn-primary">Add Marker</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Recipe Modal -->
+    <div class="modal" id="createRecipeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Flat View Recipe</h2>
+                <button class="modal-close" id="closeRecipeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Recipe Name:</label>
+                    <input type="text" placeholder="e.g., Suspect approach view" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>Time Range:</label>
+                    <div class="time-range-inputs">
+                        <input type="text" value="0:00.000" class="input-field time-input">
+                        <span>to</span>
+                        <input type="text" value="2:35.000" class="input-field time-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>View Type:</label>
+                    <select class="input-field">
+                        <option>Fixed View (no camera movement)</option>
+                        <option>Follow Subject (track movement)</option>
+                        <option>Custom Keyframes</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Initial Direction:</label>
+                    <div class="direction-controls">
+                        <div class="direction-input">
+                            <label>Pan:</label>
+                            <input type="number" value="0" class="input-field small-input"> °
+                        </div>
+                        <div class="direction-input">
+                            <label>Tilt:</label>
+                            <input type="number" value="0" class="input-field small-input"> °
+                        </div>
+                        <div class="direction-input">
+                            <label>FOV:</label>
+                            <input type="number" value="90" class="input-field small-input"> °
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <button class="btn-secondary">Use Current View</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelRecipe">Cancel</button>
+                <button class="btn-primary">Create Recipe</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden canvas for 360 remap processing -->
+    <canvas id="remapCanvas" width="2048" height="1024" style="display:none"></canvas>
+    
+    <script src="../script.js"></script>
+</body>
+</html>
